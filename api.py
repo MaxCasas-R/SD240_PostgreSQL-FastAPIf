@@ -1,9 +1,12 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, Depends
 from typing import Optional
 from pydantic import BaseModel
 import shutil
 import os
 import uuid
+import orm.repo as repo #funciones para hacer las consultas yupi 
+from sqlalchemy.orm import Session
+from orm.config import generador_sesion #generador de sesiones
 
 # creación del servidor
 app = FastAPI()
@@ -47,24 +50,17 @@ def hola_mundo():
 
     return respuesta
 
-
+#Implementacion para las compras
 @app.get("/usuarios/{id}/compras/{id_compra}")
-def compras_usuario_por_id(id: int, id_compra: int):
-    print("buscando compra con id:", id_compra, " del usuario con id:", id)
-    # simulamos la consulta
-    compra = {
-        "id_compra": 787,
-        "producto": "TV",
-        "precio": 14000
-    }
+def compras_usuario_por_id(id: int, sesion:Session=Depends(generador_sesion)):
+    print("Api consultando compra por id")
+    return repo.compra_por_id(sesion, id)
 
-    return compra
-
+#Implementacion para los usuarios
 @app.get("/usuarios/{id}")
-def usuario_por_id(id: int):
-    print("buscando usuario por id:", id)
-    # simulamos consulta a la base:
-    return usuarios[id]
+def usuario_por_id(id: int, sesion:Session=Depends(generador_sesion)):
+    print("Api consultando usuario por id:")
+    return repo.usuario_por_id(sesion, id)
 
 @app.get("/usuarios")
 def lista_usuarios(*,lote:int=10,pag:int,orden:Optional[str]=None): #parametros de consulta ?lote=10&pag=1
@@ -127,3 +123,9 @@ async def guardar_foto(titulo:str=Form(None), descripcion:str=Form(...), foto:Up
         imagen.write(contenido)
 
     return {"titulo":titulo, "descripcion":descripcion, "foto":foto.filename}
+
+#Implementacion para obtener fotos
+@app.get("/fotos/{id_usuario}/{id}")
+def consultar_foto_por_id(id:int,id_usuario:int, sesion:Session=Depends(generador_sesion)):
+    print("Api consultando foto por Id")
+    return repo.foto_por_id(sesion, id_usuario, id)
